@@ -1,22 +1,28 @@
-from pydantic import BaseModel
-from typing import List
+from passlib.context import CryptContext
+from jose import jwt
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from models import User
+import os
 
-class UserCreate(BaseModel):
-    email: str
-    password: str
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+SECRET_KEY = os.getenv("SECRET_KEY", "mu7akam_secret_key_2025_sudan")
+ALGORITHM = "HS256"
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
-class QueryRequest(BaseModel):
-    query: str
+def get_password_hash(password):
+    return pwd_context.hash(password)
 
-class QueryResponse(BaseModel):
-    answer: str
-    context: List[str]
-    source_files: List[str]
+def authenticate_user(db: Session, email: str, password: str):
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not verify_password(password, user.password):
+        return False
+    return user
 
-class AddPointsRequest(BaseModel):
-    email: str
-    points: int
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
