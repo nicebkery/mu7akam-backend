@@ -9,7 +9,7 @@ import os
 
 # استيراد المكونات المحلية
 from database import get_db, engine
-from models import User
+from models import User, Base  # تأكد من استيراد Base
 from auth import authenticate_user, create_access_token, get_password_hash
 from schemas import UserCreate, Token, QueryRequest, QueryResponse, AddPointsRequest
 from rag import embed_query, retrieve_similar_cases, generate_answer
@@ -30,13 +30,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# تفعيل pgvector تلقائيًا عند بدء التشغيل
+# تفعيل pgvector وإنشاء الجداول عند بدء التشغيل
 @app.on_event("startup")
 def init_db():
     with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         conn.commit()
-    print("✅ pgvector enabled successfully.")
+    Base.metadata.create_all(bind=engine)  # ← هذا السطر ضروري لإنشاء الجداول
+    print("✅ pgvector and tables created successfully.")
 
 # دالة للحصول على المستخدم من التوكن
 def get_current_user(token: str = Header(...), db: Session = Depends(get_db)):
