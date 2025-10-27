@@ -1,20 +1,21 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Header
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from jose import jwt, JWTError
-from datetime import datetime, timedelta
+from datetime import timedelta
 import os
 
 # استيراد المكونات المحلية
-from database import get_db
+from database import get_db, engine
 from models import User
 from auth import authenticate_user, create_access_token, get_password_hash
 from schemas import UserCreate, Token, QueryRequest, QueryResponse, AddPointsRequest
 from rag import embed_query, retrieve_similar_cases, generate_answer
 
 # إعدادات الأمان
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
+SECRET_KEY = os.getenv("SECRET_KEY", "mu7akam_secret_key_2025_sudan")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -23,11 +24,19 @@ app = FastAPI(title="مُحكَم - Backend API")
 # CORS: السماح لواجهة Netlify بالاتصال
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://mu7akam.netlify.app","http://localhost:5173"],
+    allow_origins=["https://mu7akam.netlify.app", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# تفعيل pgvector تلقائيًا عند بدء التشغيل
+@app.on_event("startup")
+def init_db():
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        conn.commit()
+    print("✅ pgvector enabled successfully.")
 
 # دالة للحصول على المستخدم من التوكن
 def get_current_user(token: str = Header(...), db: Session = Depends(get_db)):
