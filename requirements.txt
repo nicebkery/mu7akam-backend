@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic-settings
+pgvector
+sentence-transformers
+google-api-python-client
+google-auth-httplib2
+PyPDF2
+python-docx
+python-multipart
